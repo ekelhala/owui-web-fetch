@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  browserless:
+    image: ghcr.io/browserless/chromium
+    container_name: browserless
+    ports:
+      - "3000:3000"
+    # No extra env vars are required – the container already exposes
+    # the API at http://browserless:3000/content.
+
+  semwebfetch:
+    image: ekelhala/owui-semwebfetch:latest
+    container_name: semwebfetch
+    depends_on:
+      - browserless
+    ports:
+      - "8000:8000"
+    environment:
+      # Tell the sidecar where Browserless lives.
+      - BROWSERLESS_API_URL=http://browserless:3000/content

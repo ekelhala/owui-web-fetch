@@ -1,0 +1,3 @@
+CHUNK_SIZE: int = 800
+OVERLAP: int = 150
+MIN_SCORE: float = 0.25

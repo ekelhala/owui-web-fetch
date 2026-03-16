@@ -10,10 +10,11 @@ def rank_chunks(
     chunks: List[str],
     query: str,
     top_k: int,
+    min_score: float = MIN_SCORE,
 ) -> List[tuple[int, str, float]]:
     """
-    Return a list of `(chunk_index, chunk_text, similarity_score)` sorted
-    from highest to lowest.  Only chunks with similarity >= MIN_SCORE are kept.
+    Return a list of (chunk_index, chunk_text, similarity_score) sorted
+    from highest to lowest.  Only chunks with similarity >= min_score are kept.
     """
     chunk_embeddings = model.encode(chunks)
     query_emb = model.encode([query])
@@ -22,7 +23,7 @@ def rank_chunks(
     results = []
     for idx in top_indices:
         score = similarities[idx]
-        if score < MIN_SCORE:
+        if score < min_score:
             continue
         results.append((idx, chunks[idx], score))
     return results

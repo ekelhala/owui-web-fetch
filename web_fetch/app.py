@@ -1,8 +1,7 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import json
+from pydantic import BaseModel, Field
 
-from .constants import CHUNK_SIZE
+from .constants import CHUNK_SIZE, OVERLAP, MIN_SCORE
 from .fetcher import fetch_page
 from .cleaner import clean_text
 from .chunker import chunk_text
@@ -14,6 +13,12 @@ class SearchRequest(BaseModel):
     urls: str | list[str]
     search_query: str
     top_k: int = 3
+
+    # ------------------------------------------------------------------ #
+    # New Valves (user‑configurable at runtime)
+    chunk_size: int = Field(default=CHUNK_SIZE, description="Size of each text chunk (in characters).")
+    overlap: int = Field(default=OVERLAP, description="Number of characters that overlap between consecutive chunks.")
+    min_score: float = Field(default=MIN_SCORE, description="Minimum similarity score to keep a chunk.")
 
 @app.post("/semantic-search")
 def semantic_search(req: SearchRequest) -> str:
@@ -33,9 +38,10 @@ def semantic_search(req: SearchRequest) -> str:
             txt = clean_text(html)
             if not preview:
                 preview = txt[:1500]
-            all_chunks.extend([(url, ch) for ch in chunk_text(txt)])
+            # Pass user‑configurable chunk parameters
+            all_chunks.extend([(url, ch) for ch in chunk_text(txt, req.chunk_size, req.overlap)])
         except Exception as exc:
-            errors.append(f"error: **{url}** - {exc}")
+            errors.append(f"error **{url}** - {exc}")
 
     if not all_chunks:
         if errors:
@@ -43,7 +49,7 @@ def semantic_search(req: SearchRequest) -> str:
         return "No text content could be extracted from the provided URLs."
 
     chunk_texts = [c for _, c in all_chunks]
-    ranked = rank_chunks(chunk_texts, req.search_query, req.top_k)
+    ranked = rank_chunks(chunk_texts, req.search_query, req.top_k, req.min_score)
 
     md_chunks = []
     for idx, txt, score in ranked:
